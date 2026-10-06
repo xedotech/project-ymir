@@ -1,0 +1,26 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install -e ".[dev]"
+      - run: pytest -q
+      - name: Mock end-to-end smoke run
+        run: |
+          ymir run configs/smoke_mock.toml
+          ymir train-router runs/smoke-mock.jsonl --policy B0 --split-frac 0.5 --out runs/router_b0.json
+          ymir report runs/smoke-mock.jsonl --oracle B0,B2-256,B2-1k,B3 --cascade B0,B3 \
+            --router runs/router_b0.json --target-ref B3 --eval-split-frac 0.5

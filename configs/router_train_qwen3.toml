@@ -1,0 +1,51 @@
+# M3, step 1: run the cascade's cheap stage on TRAINING splits, so the router never
+# sees test problems.
+#   ymir data fetch configs/router_train_qwen3.toml
+#   ymir run configs/router_train_qwen3.toml
+#   ymir train-router runs/router-train-qwen3-8b.jsonl --policy B0 --out routers/b0.json
+
+[run]
+name = "router-train-qwen3-8b"
+seeds = [0]
+concurrency = 32
+policies = ["B0", "B2-4k"]
+
+[backend]
+type = "openai"
+base_url = "http://localhost:8000/v1"
+model = "Qwen/Qwen3-8B"
+params_b = 8.2
+extra_body = { top_k = 20, min_p = 0.0 }
+
+[[benchmarks]]
+name = "gsm8k_train"
+loader = "gsm8k"
+split = "train"
+limit = 2000
+
+# MATH training set; answers are extracted from the worked solutions.
+# The hub id and config names below are the common EleutherAI mirror; check them on
+# first fetch and adjust if the hub has moved.
+[[benchmarks]]
+name = "math_train"
+loader = "hf_math"
+hf_id = "EleutherAI/hendrycks_math"
+hf_configs = ["algebra", "counting_and_probability", "geometry", "intermediate_algebra", "number_theory", "prealgebra", "precalculus"]
+split = "train"
+question_field = "problem"
+answer_field = "solution"
+answer_from_solution = true
+shuffle_seed = 0
+limit = 3000
+
+[[policies]]
+id = "B0"
+type = "nothink"
+style = "direct"
+max_tokens = 1024
+
+[[policies]]
+id = "B2-4k"
+type = "think"
+budget = 4096
+answer_tokens = 2048

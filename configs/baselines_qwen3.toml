@@ -1,0 +1,83 @@
+# M1 + M2: fixed baselines B0-B4 on the four Phase I benchmarks.
+#
+# Start the server first (see scripts/serve_vllm.sh), then:
+#   ymir data fetch configs/baselines_qwen3.toml
+#   ymir run configs/baselines_qwen3.toml --limit 20      # smoke test
+#   ymir run configs/baselines_qwen3.toml                 # full grid, resumable
+#
+# For fast iteration, point `model` at Qwen/Qwen3-1.7B and change `name`.
+
+[run]
+name = "baselines-qwen3-8b"
+seeds = [0, 1, 2]
+# vLLM batches concurrent requests; raise this until GPU utilisation stops improving.
+concurrency = 32
+policies = ["B0", "B1", "B2-1k", "B2-4k", "B2-16k", "B3", "B4-sc5"]
+
+[backend]
+type = "openai"
+base_url = "http://localhost:8000/v1"
+model = "Qwen/Qwen3-8B"
+prompt_format = "qwen3"
+params_b = 8.2
+# Qwen3 model card recommends top_k = 20 in both modes.
+extra_body = { top_k = 20, min_p = 0.0 }
+
+[[benchmarks]]
+name = "math500"
+
+[[benchmarks]]
+name = "gsm8k"
+
+[[benchmarks]]
+name = "mbppplus"
+
+[[benchmarks]]
+name = "aime2025"
+
+# --- policies -----------------------------------------------------------------------
+
+[[policies]]
+id = "B0"
+type = "nothink"
+style = "direct"
+max_tokens = 1024
+
+[[policies]]
+id = "B1"
+type = "nothink"
+style = "cot"
+max_tokens = 4096
+
+[[policies]]
+id = "B2-1k"
+type = "think"
+budget = 1024
+answer_tokens = 2048
+
+[[policies]]
+id = "B2-4k"
+type = "think"
+budget = 4096
+answer_tokens = 2048
+
+[[policies]]
+id = "B2-16k"
+type = "think"
+budget = 16384
+answer_tokens = 2048
+
+# "Always think hard". 32k is Qwen3's recommended max output for hard problems;
+# set vLLM --max-model-len high enough (prompt + 32768 + answer_tokens).
+[[policies]]
+id = "B3"
+type = "think"
+budget = 32768
+answer_tokens = 2048
+
+# Self-consistency over non-thinking CoT (math only; skipped for code automatically).
+[[policies]]
+id = "B4-sc5"
+type = "self_consistency"
+inner = "B1"
+k = 5

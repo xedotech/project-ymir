@@ -1,0 +1,12 @@
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.venv/
+build/
+dist/
+
+# Run outputs: large, regenerated from configs. Commit summaries in reports/ instead.
+runs/
+data/
+*.jsonl
+!tests/fixtures/*.jsonl

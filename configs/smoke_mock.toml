@@ -1,0 +1,51 @@
+# End-to-end smoke test with no GPU: the mock model on synthetic arithmetic.
+#   ymir run configs/smoke_mock.toml
+#   ymir train-router runs/smoke-mock.jsonl --policy B0 --split-frac 0.5 --out runs/router_b0.json
+#   ymir report runs/smoke-mock.jsonl --oracle B0,B2-1k,B3 --cascade B0,B3 \
+#       --router runs/router_b0.json --target-ref B3 --eval-split-frac 0.5
+
+[run]
+name = "smoke-mock"
+seeds = [0, 1, 2]
+concurrency = 8
+policies = ["B0", "B1", "B2-256", "B2-1k", "B3", "B4-sc5"]
+
+[backend]
+type = "mock"
+
+[[benchmarks]]
+name = "toy"
+n = 300
+
+[[policies]]
+id = "B0"
+type = "nothink"
+style = "direct"
+max_tokens = 64
+
+[[policies]]
+id = "B1"
+type = "nothink"
+style = "cot"
+max_tokens = 512
+
+[[policies]]
+id = "B2-256"
+type = "think"
+budget = 256
+
+[[policies]]
+id = "B2-1k"
+type = "think"
+budget = 1024
+
+[[policies]]
+id = "B3"
+type = "think"
+budget = 4096
+
+[[policies]]
+id = "B4-sc5"
+type = "self_consistency"
+inner = "B0"
+k = 5
